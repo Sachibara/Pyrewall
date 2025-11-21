@@ -1,0 +1,6 @@
+00:1A:79 Samsung Electronics
+3C:5A:B4 Apple Inc.
+50:7B:9D Xiaomi Communications
+FC:FB:D2 Huawei Technologies
+40:16:7E Dell Inc.
+F0:79:59 HP Inc.

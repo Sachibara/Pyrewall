@@ -1,0 +1,7 @@
+{
+  "auto_start": false,
+  "detailed_logging": false,
+  "dark_mode": false,
+  "dns_proxy_enabled": true,
+  "create_netsh_blocks": true
+}

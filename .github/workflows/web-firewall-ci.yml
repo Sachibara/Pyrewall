@@ -1,0 +1,20 @@
+name: Web Firewall CI
+
+on:
+  push:
+    branches:
+      - web-firewall
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Python syntax
+        run: python -m py_compile web_app.py core/firewall_thread.py
+      - name: Check browser JavaScript syntax
+        run: node --check web/static/app.js

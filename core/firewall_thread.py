@@ -249,22 +249,46 @@ def sync_blocked_ips(db_path=None):
         cur.execute("CREATE TABLE IF NOT EXISTS blocked_domains(domain TEXT UNIQUE)")
         cur.execute("CREATE TABLE IF NOT EXISTS blocked_ips(ip TEXT PRIMARY KEY)")
 
-        cur.execute("DELETE FROM blocked_ips")
+        # Preserve administrator-created manual IP blocks. Only rebuild rows that
+        # were produced by domain resolution / temporary filtering.
+        cur.execute("""
+            DELETE FROM blocked_ips
+            WHERE COALESCE(reason, '') != 'manual'
+        """)
         cur.execute("SELECT domain FROM blocked_domains")
         domains = [r[0] for r in cur.fetchall()]
 
         all_ips = set()
         for d in domains:
             for ip in resolve_domain_to_ips(d):
-                all_ips.add(ip)
+                all_ips.add((ip, d))
 
-        for ip in all_ips:
-            cur.execute("INSERT OR IGNORE INTO blocked_ips(ip) VALUES (?)", (ip,))
+        for ip, domain in all_ips:
+            cur.execute(
+                """
+                INSERT INTO blocked_ips(ip, domain, expires_at, reason)
+                VALUES (?, ?, NULL, 'domain')
+                ON CONFLICT(ip) DO UPDATE SET
+                    domain=CASE
+                        WHEN blocked_ips.reason='manual' THEN blocked_ips.domain
+                        ELSE excluded.domain
+                    END,
+                    expires_at=CASE
+                        WHEN blocked_ips.reason='manual' THEN blocked_ips.expires_at
+                        ELSE NULL
+                    END,
+                    reason=CASE
+                        WHEN blocked_ips.reason='manual' THEN blocked_ips.reason
+                        ELSE 'domain'
+                    END
+                """,
+                (ip, domain),
+            )
 
         conn.commit()
         conn.close()
 
-        print(f"[Pyrewall] Synced {len(all_ips)} blocked IPs from {len(domains)} domains.")
+        print(f"[Pyrewall] Synced {len(all_ips)} domain-derived IPs from {len(domains)} domains (manual IPs preserved).")
 
     except Exception as e:
         print(f"[Pyrewall] sync_blocked_ips() error: {e}")
@@ -815,9 +839,10 @@ class FirewallThread(threading.Thread):
                         # --- App-level Blocking (user-defined patterns) ---
                         app_match = None
                         if host:
-                            for _, app_name, pattern, ip_range, proto in self.app_signatures:
-                                if pattern and fnmatch.fnmatch(host, pattern):
-                                    app_match = (app_name, pattern)
+                            for _, app_name, pattern, ip_range, proto, domain_pattern in self.app_signatures:
+                                host_pattern = domain_pattern or pattern
+                                if host_pattern and fnmatch.fnmatch(host, host_pattern):
+                                    app_match = (app_name, host_pattern)
                                     break
 
                         if app_match:

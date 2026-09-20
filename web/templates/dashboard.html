@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#08111f">
+  <meta name="csrf-token" content="{{ csrf }}">
+  <title>PyreWall — Web Firewall Console</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+</head>
+<body class="dashboard-page" data-role="{{ role }}">
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-row">
+        <div class="shield-logo small">P</div>
+        <div>
+          <strong>PyreWall</strong>
+          <span>Web Firewall</span>
+        </div>
+      </div>
+
+      <div class="engine-mini">
+        <span class="status-dot" id="sidebarStatusDot"></span>
+        <div>
+          <strong id="sidebarStatus">Checking engine…</strong>
+          <span id="sidebarReady">WinDivert status</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" aria-label="Firewall sections">
+        <button class="nav-item active" data-page="overview"><span>◫</span>Overview</button>
+        <button class="nav-item" data-page="network"><span>⌘</span>Network Control</button>
+        <button class="nav-item" data-page="rules"><span>⛨</span>Firewall Rules</button>
+        <button class="nav-item" data-page="threats"><span>⚠</span>Threats</button>
+        <button class="nav-item" data-page="history"><span>↺</span>History</button>
+        <button class="nav-item" data-page="settings"><span>⚙</span>Settings</button>
+        <button class="nav-item admin-only" data-page="users"><span>♙</span>User Management</button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="local-badge">Local control plane</div>
+        <p>Firewall enforcement runs on this Windows host, not in the browser.</p>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div class="topbar-title">
+          <button class="menu-button" id="menuButton" type="button" aria-label="Toggle navigation">☰</button>
+          <div>
+            <p class="eyebrow" id="pageEyebrow">Firewall status</p>
+            <h1 id="pageTitle">Overview</h1>
+          </div>
+        </div>
+        <div class="topbar-actions">
+          <span class="role-pill">{{ role }}</span>
+          <span class="user-name">{{ username }}</span>
+          <a class="ghost-button compact" href="{{ url_for('logout') }}">Log out</a>
+        </div>
+      </header>
+
+      <main>
+        <section class="page active" data-page-panel="overview">
+          <article class="engine-hero panel">
+            <div>
+              <p class="eyebrow">Firewall engine</p>
+              <div class="engine-state-line">
+                <h2 id="engineState">Checking PyreWall…</h2>
+                <span class="state-badge" id="engineBadge">Unknown</span>
+              </div>
+              <p id="engineDetail" class="muted">Reading WinDivert and administrator state.</p>
+              <div class="hero-actions admin-only">
+                <button class="primary-button" id="startFirewallBtn" type="button">Start firewall</button>
+                <button class="danger-button" id="stopFirewallBtn" type="button">Stop firewall</button>
+              </div>
+            </div>
+            <div class="engine-orb" id="engineOrb">
+              <span class="orb-ring one"></span>
+              <span class="orb-ring two"></span>
+              <span class="orb-core">⛨</span>
+            </div>
+          </article>
+
+          <div class="stats-grid">
+            <article class="stat-card"><span>Blocked domains</span><strong id="statDomains">0</strong><small>DNS / SNI / HTTP host controls</small></article>
+            <article class="stat-card"><span>Blocked IPs</span><strong id="statIps">0</strong><small>Manual + resolved addresses</small></article>
+            <article class="stat-card"><span>Blocked devices</span><strong id="statDevices">0</strong><small>ARP / Windows Firewall controls</small></article>
+            <article class="stat-card"><span>Custom rules</span><strong id="statRules">0</strong><small>Saved IP / port rules</small></article>
+            <article class="stat-card"><span>App signatures</span><strong id="statSignatures">0</strong><small>Service/domain patterns</small></article>
+            <article class="stat-card"><span>Threat events</span><strong id="statThreats">0</strong><small>IDS / IPS event store</small></article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Live telemetry</p><h3>Network throughput</h3></div>
+                <span class="muted" id="trafficLabel">Waiting for sample…</span>
+              </div>
+              <canvas id="trafficCanvas" width="900" height="280" aria-label="Network traffic chart"></canvas>
+              <div class="traffic-legend">
+                <span><i class="legend-dot upload"></i>Upload <strong id="trafficUp">0 B/s</strong></span>
+                <span><i class="legend-dot download"></i>Download <strong id="trafficDown">0 B/s</strong></span>
+              </div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading">
+                <div><p class="eyebrow">Host</p><h3>Control-plane health</h3></div>
+              </div>
+              <dl class="health-list">
+                <div><dt>Hostname</dt><dd id="hostName">—</dd></div>
+                <div><dt>Platform</dt><dd id="hostPlatform">—</dd></div>
+                <div><dt>Administrator</dt><dd id="hostAdmin">—</dd></div>
+                <div><dt>WinDivert ready</dt><dd id="hostReady">—</dd></div>
+              </dl>
+              <div class="notice warning hidden" id="adminWarning">
+                Start the web console as Administrator to modify Windows Firewall and open WinDivert.
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" data-page-panel="network">
+          <div class="page-intro">
+            <div><p class="eyebrow">Network Control</p><h2>Domains, IPs, services, and devices</h2></div>
+            <button class="ghost-button" id="refreshNetworkBtn" type="button">Refresh all</button>
+          </div>
+
+          <div class="two-col-grid">
+            <article class="panel">
+              <div class="panel-heading"><div><h3>Website blocking</h3><p>Blocked domains are enforced by the PyreWall packet/DNS engine.</p></div></div>
+              <form class="inline-form admin-only" id="domainForm">
+                <input id="domainInput" type="text" placeholder="example.com" autocomplete="off">
+                <button class="primary-button compact" type="submit">Block domain</button>
+              </form>
+              <div class="item-list" id="domainList"></div>
+            </article>
+
+            <article class="panel">
+              <div class="panel-heading"><div><h3>Blocked IP addresses</h3><p>Manual IP entries persist separately from temporary domain-resolution entries.</p></div></div>
+              <form class="inline-form admin-only" id="ipForm">
+                <input id="ipInput" type="text" placeholder="192.168.1.50" autocomplete="off">
+                <button class="primary-button compact" type="submit">Block IP</button>
+              </form>
+              <div class="item-list" id="ipList"></div>
+            </article>
+          </div>
+
+          <article class="panel">
+            <div class="panel-heading">
+              <div><h3>Connected devices</h3><p>Best-effort ARP discovery of devices visible to this Windows host.</p></div>
+              <button class="ghost-button compact" id="scanDevicesBtn" type="button">Scan devices</button>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>IP address</th><th>MAC address</th><th>Status</th><th class="admin-only">Action</th></tr></thead>
+                <tbody id="deviceTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+
+          <article class="panel">
+            <div class="panel-heading"><div><h3>Application / service signatures</h3><p>Admin-defined host/domain patterns used by the packet filter. No hardcoded service list.</p></div></div>
+            <form class="signature-form admin-only" id="signatureForm">
+              <input id="signatureName" placeholder="Service name" required>
+              <input id="signaturePattern" placeholder="Host pattern e.g. *.discord.com">
+              <input id="signatureDomain" placeholder="Domain pattern (optional)">
+              <input id="signatureIpRange" placeholder="IP range (optional)">
+              <select id="signatureProtocol"><option>ANY</option><option>TCP</option><option>UDP</option><option>ICMP</option></select>
+              <button class="primary-button" type="submit">Add signature</button>
+            </form>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Name</th><th>Host pattern</th><th>Domain pattern</th><th>IP range</th><th>Protocol</th><th class="admin-only">Action</th></tr></thead>
+                <tbody id="signatureTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="rules">
+          <div class="page-intro">
+            <div><p class="eyebrow">Firewall Rules</p><h2>Custom IP, port, protocol, and action rules</h2></div>
+          </div>
+          <article class="panel">
+            <form class="rule-form admin-only" id="ruleForm">
+              <label><span>Target IP</span><input id="ruleIp" placeholder="192.168.1.10" required></label>
+              <label><span>Port</span><input id="rulePort" placeholder="ANY" value="ANY"></label>
+              <label><span>Protocol</span><select id="ruleProtocol"><option>TCP</option><option>UDP</option><option>ICMP</option><option>ANY</option></select></label>
+              <label><span>Action</span><select id="ruleAction"><option>BLOCK</option><option>ALLOW</option></select></label>
+              <button class="primary-button" type="submit">Add rule</button>
+            </form>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>ID</th><th>Owner</th><th>IP</th><th>Port</th><th>Protocol</th><th>Action</th><th class="admin-only">Manage</th></tr></thead>
+                <tbody id="ruleTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="threats">
+          <div class="page-intro">
+            <div><p class="eyebrow">IDS / IPS</p><h2>Threat monitoring</h2></div>
+            <div class="page-actions">
+              <button class="ghost-button" id="refreshThreatsBtn" type="button">Refresh</button>
+              <button class="danger-button admin-only" id="clearThreatsBtn" type="button">Clear alerts</button>
+            </div>
+          </div>
+          <article class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Time</th><th>Source</th><th>Destination</th><th>Protocol</th><th>Severity</th><th>Description</th></tr></thead>
+                <tbody id="threatTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="history">
+          <div class="page-intro">
+            <div><p class="eyebrow">Logs</p><h2>Activity history</h2></div>
+            <div class="search-row">
+              <input id="historySearch" type="search" placeholder="Search user, action, description, or date">
+              <button class="ghost-button" id="historySearchBtn" type="button">Search</button>
+            </div>
+          </div>
+          <article class="panel">
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Time</th><th>User</th><th>Action</th><th>Description</th></tr></thead>
+                <tbody id="historyTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+
+        <section class="page" data-page-panel="settings">
+          <div class="page-intro">
+            <div><p class="eyebrow">Configuration</p><h2>PyreWall settings</h2></div>
+          </div>
+          <div class="settings-grid">
+            <article class="panel">
+              <h3>Runtime preferences</h3>
+              <div class="toggle-list">
+                <label><input type="checkbox" id="settingAutoStart"> <span><strong>Auto-start web console</strong><small>Windows Startup entry for this local service.</small></span></label>
+                <label><input type="checkbox" id="settingLogging"> <span><strong>Detailed logging</strong><small>Use DEBUG-level logging for PyreWall loggers.</small></span></label>
+                <label><input type="checkbox" id="settingDark"> <span><strong>Dark mode</strong><small>Browser console appearance.</small></span></label>
+                <label><input type="checkbox" id="settingDns"> <span><strong>DNS proxy enabled</strong><small>Persist the DNS filtering preference used by PyreWall.</small></span></label>
+                <label><input type="checkbox" id="settingNetsh"> <span><strong>Create Windows Firewall blocks</strong><small>Persist netsh integration preference.</small></span></label>
+              </div>
+              <button class="primary-button admin-only" id="saveSettingsBtn" type="button">Save settings</button>
+            </article>
+
+            <article class="panel">
+              <h3>Maintenance</h3>
+              <p class="muted">Back up the SQLite databases used by the web and desktop versions.</p>
+              <button class="ghost-button admin-only" id="backupBtn" type="button">Back up databases</button>
+              <div class="maintenance-result" id="backupResult"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="page admin-only" data-page-panel="users">
+          <div class="page-intro">
+            <div><p class="eyebrow">Administration</p><h2>User management</h2></div>
+          </div>
+          <article class="panel">
+            <form class="user-form" id="userForm">
+              <input id="newUsername" placeholder="Username" required>
+              <input id="newPassword" type="password" placeholder="Password (8+ characters)" required>
+              <select id="newUserRole"><option value="user">user</option><option value="admin">admin</option></select>
+              <button class="primary-button" type="submit">Add user</button>
+            </form>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Username</th><th>Role</th><th>New password</th><th>Manage</th></tr></thead>
+                <tbody id="userTableBody"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" aria-live="polite"></div>
+</body>
+</html>

@@ -399,7 +399,7 @@
   }
 
   async function loadNetwork() {
-    await Promise.all([loadDomains(), loadIps(), loadSignatures()]);
+    await Promise.all([loadDomains(), loadIps(), loadSignatures(), loadDevices()]);
   }
 
   $("refreshNetworkBtn")?.addEventListener("click", () => loadNetwork().catch(showError));

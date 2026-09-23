@@ -5,8 +5,8 @@ Pyrewall is a Windows-focused firewall and network monitoring desktop applicatio
 ## Project Links
 
 - **Desktop source:** https://github.com/Sachibara/Pyrewall
-- **Public PyreWall Web workspace:** https://portfolio-github-io-five-pi.vercel.app/projects/pyrewall-web/
-- **Portfolio:** https://portfolio-github-io-five-pi.vercel.app/
+- **Public PyreWall Web workspace:** https://jimcamus.vercel.app/projects/pyrewall-web/
+- **Portfolio:** https://jimcamus.vercel.app/
 
 ## Overview
 

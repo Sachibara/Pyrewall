@@ -2,6 +2,12 @@
 
 Pyrewall is a Windows-focused firewall and network monitoring desktop application built with Python and PyQt6. It combines network visibility, filtering, device control, firewall rules, threat monitoring, history, and administration in a desktop interface.
 
+## Project Links
+
+- **Desktop source:** https://github.com/Sachibara/Pyrewall
+- **Public PyreWall Web workspace:** https://sachibara.github.io/Pyrewall-Web/
+- **Portfolio:** https://portfolio-github-io-five-pi.vercel.app/
+
 ## Overview
 
 Pyrewall was developed as a BSIT Network Technology capstone project. The goal is to provide a practical desktop control layer for monitoring and managing network activity from a Windows host.
